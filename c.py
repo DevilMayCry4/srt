@@ -202,7 +202,7 @@ def main():
     parser.add_argument("--bilingual", action="store_true", help="输出双语字幕")
     
     args = parser.parse_args()
-    
+    args.input_file = "HHED-027.ass" 
     if not os.path.exists(args.input_file):
         print(f"文件不存在: {args.input_file}")
         sys.exit(1)
