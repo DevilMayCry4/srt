@@ -194,7 +194,6 @@ class LocalTranslator:
 
 def main():
     parser = argparse.ArgumentParser(description="本地 Hunyuan-MT-7B 字幕翻译工具")
-    parser.add_argument("input_file", help="输入 SRT 文件")
     parser.add_argument("--model_path", "-m", default="tencent/Hunyuan-MT-7B", help="模型名称或本地路径 (默认: tencent/Hunyuan-MT-7B)")
     parser.add_argument("--output_file", "-o", help="输出文件路径")
     parser.add_argument("--device", "-d", default="auto", help="设备 (cpu/cuda/mps/auto)")
