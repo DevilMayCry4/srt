@@ -106,7 +106,7 @@ class LocalTranslator:
         # 逐条推理 (Hunyuan-MT 可能针对单句优化，批量生成需要 padding)
         # 为了稳妥，这里演示逐条生成，如果显存够大可以自行改为 batch encoding
         for text in texts:
-            prompt = f"将下面的日文翻译成简体中文：\n{text}\n答案："
+            prompt = f"你是一名精通日语的翻译官，将下面的日文翻译成简体中文,直接给出答案：\n{text}\n答案："
             
             try:
                 inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
