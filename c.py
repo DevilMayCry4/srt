@@ -97,20 +97,17 @@ class LocalTranslator:
 
     def translate_batch(self, texts: List[str]) -> List[str]:
         """批量翻译"""
-        # 构造 Prompt
-        # Hunyuan-MT 的 prompt 格式可能需要参考官方文档
-        # 这里假设使用标准的翻译指令格式
-        
         results = []
         
-        # 逐条推理 (Hunyuan-MT 可能针对单句优化，批量生成需要 padding)
-        # 为了稳妥，这里演示逐条生成，如果显存够大可以自行改为 batch encoding
-        for text in texts:
-            prompt = f"你是一名精通日语的翻译官，将下面的日文翻译成简体中文,直接给出答案：\n{text}\n答案："
+        # 逐条推理，并增加显存回收机制
+        for i, text in enumerate(texts):
+            # 分块处理长文本（如果单条字幕过长）
+            # 这里简单起见，假设单条字幕不会超过模型限制，主要关注批次间的显存释放
+            
+            prompt = f"将下面的日文翻译成简体中文：\n{text}\n答案："
             
             try:
                 inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
-                # 移除可能导致警告或错误的 token_type_ids，如果模型不需要它
                 if "token_type_ids" in inputs:
                     del inputs["token_type_ids"]
                 
@@ -118,21 +115,15 @@ class LocalTranslator:
                     outputs = self.model.generate(
                         **inputs, 
                         max_new_tokens=512,
-                        temperature=0.1, # 翻译建议低温度
+                        temperature=0.1, 
                         top_p=0.9
                     )
                 
-                # 解码并去除 prompt 部分
                 generated = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
                 
-                # 简单的后处理：提取“答案：”之后的内容
-                # 注意：实际输出可能包含 prompt，需要截取
                 if "答案：" in generated:
                     translation = generated.split("答案：")[-1].strip()
                 else:
-                    # 如果模型没有复读 prompt，直接取结果
-                    # 很多 Chat 模型 generate 会包含输入，需要看具体实现
-                    # 这里做一个简单的长度判断，如果包含 prompt 则截取
                     if generated.startswith(prompt):
                         translation = generated[len(prompt):].strip()
                     else:
@@ -140,9 +131,16 @@ class LocalTranslator:
                 
                 results.append(translation)
                 
+                # 显式清理，辅助显存回收
+                del inputs, outputs
+                if self.device == "cuda":
+                    torch.cuda.empty_cache()
+                elif self.device == "mps":
+                    torch.mps.empty_cache()
+                    
             except Exception as e:
                 logger.error(f"翻译失败: {text} -> {e}")
-                results.append(text) # 失败保留原文
+                results.append(text)
                 
         return results
 
